@@ -20,7 +20,7 @@ describe('GutenbergService', () => {
 
     it('should successfully fetch and return truncated book text', async () => {
       // Arrange
-      const longBookText = 'A'.repeat(6000); // Text longer than maxTextLength
+      const longBookText = 'A'.repeat(60000); // Text longer than maxTextLength (50000)
       mockedAxios.get.mockResolvedValue({
         status: 200,
         statusText: 'OK',

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export class GutenbergService {
   private readonly baseUrl = 'https://www.gutenberg.org/files';
-  private readonly maxTextLength = 5000;
+  private readonly maxTextLength = 5000; // Reduced for testing with API limits
 
   /**
    * Fetches the raw text of a book from Project Gutenberg

@@ -1,62 +1,110 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  BookAnalysisAgent,
+  GroqLLMService,
+  GutenbergService,
+  type Message,
+} from '@/lib/services';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const bookId = searchParams.get('bookId');
+  const { searchParams } = new URL(request.url);
+  const bookId = searchParams.get('bookId');
 
-    if (!bookId) {
+  if (!bookId) {
+    return NextResponse.json(
+      { error: 'bookId parameter is required' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Create service instances
+    const gutenbergService = new GutenbergService();
+    const llmService = new GroqLLMService();
+    const analysisAgent = BookAnalysisAgent(llmService);
+
+    // Fetch book text from Project Gutenberg
+    const bookText = await gutenbergService.getBookText(bookId);
+
+    // Analyze the book using the BookAnalysisAgent
+    const analysisMessage: Message = {
+      role: 'user',
+      content: bookText,
+    };
+
+    const analysisResponse = await analysisAgent.chat([analysisMessage]);
+
+    // Parse the JSON response from the agent
+    let parsedAnalysis;
+    try {
+      parsedAnalysis = JSON.parse(analysisResponse);
+    } catch (parseError) {
+      console.error('Failed to parse agent response as JSON:', parseError);
       return NextResponse.json(
-        { error: 'bookId parameter is required' },
-        { status: 400 }
+        { error: 'Invalid analysis response format' },
+        { status: 500 }
       );
     }
 
-    // Simulate API processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Transform the agent response to match UI expectations
+    const transformedAnalysis = {
+      characterRelationships:
+        parsedAnalysis.characters?.flatMap(
+          (character: any) =>
+            character.relationships?.map((rel: any) => ({
+              character1: character.name,
+              character2: rel.target,
+              relationship: rel.description,
+              strength: 'moderate' as const, // Default strength, could be enhanced with sentiment analysis
+            })) || []
+        ) || [],
+      keyCharacters:
+        parsedAnalysis.characters?.map((char: any) => char.name) || [],
+      themes: parsedAnalysis.themes || [],
+      summary: parsedAnalysis.plot_summary || 'No summary available',
+      wordCount: bookText.split(/\s+/).length, // Approximate word count
+    };
 
-    // Mock analysis result - in a real app, this would call Project Gutenberg API and LLM
+    // Return the structured analysis result
     const analysisResult = {
       bookId,
-      title: `Sample Book Title for ID: ${bookId}`,
-      author: 'Sample Author',
-      analysis: {
-        characterRelationships: [
-          {
-            character1: 'Main Character',
-            character2: 'Supporting Character',
-            relationship: 'Close friendship and mutual support',
-            strength: 'strong',
-          },
-          {
-            character1: 'Main Character',
-            character2: 'Antagonist',
-            relationship: 'Conflict and opposition throughout the story',
-            strength: 'moderate',
-          },
-          {
-            character1: 'Supporting Character',
-            character2: 'Minor Character',
-            relationship: 'Brief acquaintance and occasional interaction',
-            strength: 'weak',
-          },
-        ],
-        keyCharacters: [
-          'Main Character',
-          'Supporting Character',
-          'Antagonist',
-          'Minor Character',
-        ],
-        themes: ['Friendship', 'Conflict', 'Growth', 'Adventure'],
-        summary: `This is a sample analysis for book ID ${bookId}. The story explores themes of friendship, conflict, and personal growth through the interactions of its main characters. The narrative follows a compelling journey of discovery and transformation.`,
-        wordCount: 45000,
-      },
+      title: `Book ID: ${bookId}`, // We don't have title from Gutenberg, could be enhanced
+      author: 'Unknown Author', // We don't have author from Gutenberg, could be enhanced
+      analysis: transformedAnalysis,
       timestamp: new Date().toISOString(),
     };
 
     return NextResponse.json(analysisResult);
   } catch (error) {
     console.error('Error analyzing book:', error);
+
+    if (error instanceof Error) {
+      // Handle specific error types
+      if (error.message.includes('not found')) {
+        return NextResponse.json(
+          { error: `Book with ID ${bookId} not found` },
+          { status: 404 }
+        );
+      }
+      if (
+        error.message.includes('timeout') ||
+        error.message.includes('Network error')
+      ) {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable' },
+          { status: 503 }
+        );
+      }
+      if (error.message.includes('GROQ_API_KEY')) {
+        return NextResponse.json(
+          { error: 'LLM service configuration error' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json(
       { error: 'Failed to analyze book' },
       { status: 500 }
