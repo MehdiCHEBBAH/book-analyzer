@@ -1,6 +1,6 @@
 # Book Analyzer
 
-A simple Next.js application with basic API endpoints.
+A full-stack application that analyzes books from Project Gutenberg to visualize character relationships.
 
 ## Getting Started
 
@@ -30,8 +30,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## API Endpoints
 
-The application provides three simple API endpoints:
+The application provides several API endpoints:
 
+- `GET /api/analyze?bookId={id}` - Analyzes a book from Project Gutenberg by ID
 - `GET /api/hello` - Returns a hello world message with timestamp
 - `GET /api/health` - Health check endpoint with system information
 - `GET /api/status` - Detailed status information including memory usage
