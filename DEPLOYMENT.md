@@ -39,11 +39,19 @@ vercel
    cp .env.example .env
    ```
 
-2. Edit the `.env` file and fill in any required values.
+2. Edit the `.env` file and add your Groq API key:
 
-3. For Vercel deployment, add environment variables in the Vercel dashboard under Project Settings > Environment Variables.
+   ```bash
+   GROQ_API_KEY=your_actual_groq_api_key_here
+   ```
 
-Note: Currently, no environment variables are required for the basic functionality, but the `.env.example` file shows potential variables for future features.
+3. For Vercel deployment, add environment variables in the Vercel dashboard under Project Settings > Environment Variables:
+   - `GROQ_API_KEY` - Your Groq API key (required)
+   - `GROQ_MODEL` - Optional: Customize the LLM model (default: openai/gpt-oss-20b)
+   - `GROQ_TEMPERATURE` - Optional: Control response randomness
+   - `GROQ_MAX_TOKENS` - Optional: Maximum tokens in response
+
+**Important**: The `GROQ_API_KEY` environment variable is required for the LLM functionality to work. Get your API key from [https://console.groq.com/](https://console.groq.com/).
 
 ### 4. Build Configuration
 
@@ -139,9 +147,11 @@ src/
 
 ## Features
 
-- **Simple UI**: Clean hello world page
-- **API Endpoints**: Three basic endpoints for testing
+- **AI-Powered Analysis**: LLM service integration for intelligent book analysis
+- **Modular Architecture**: Abstract LLM service with concrete Groq implementation
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
+- **API Endpoints**: Multiple endpoints for book analysis and system health
 - **Responsive Design**: Modern, mobile-friendly interface
-- **Type Safety**: Full TypeScript support
 - **Code Quality**: ESLint, Prettier, and pre-commit hooks
+- **Comprehensive Testing**: Unit tests with mocked dependencies
 - **Performance**: Optimized for production with Next.js
