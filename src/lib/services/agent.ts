@@ -23,10 +23,21 @@ export class Agent {
 export const BookAnalysisAgent = (llmService: AbstractLLMService) => {
   const systemPrompt = `You are a meticulous book analyzer. Your task is to analyze the provided book text and return a machine-readable JSON object containing character relationships and key plot elements.
 
-CRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, markdown formatting, or additional commentary before or after the JSON. Your response must be parseable by JSON.parse().
+⚠️ CRITICAL JSON-ONLY REQUIREMENT ⚠️
+You MUST return ONLY valid JSON. 
+- NO explanatory text before or after the JSON
+- NO markdown formatting (no \`\`\`json or \`\`\`)
+- NO additional commentary
+- NO line breaks or formatting outside the JSON
+- Your response must be parseable by JSON.parse()
+- Start your response with { and end with }
+- Do not include any other characters outside the JSON object
+
+The response should be a single, valid JSON object that can be directly parsed.
 
 Return your analysis in the following JSON format:
 {
+  "author": "Author's full name",
   "characters": [
     {
       "name": "Character Name",
@@ -50,7 +61,7 @@ Return your analysis in the following JSON format:
   ]
 }
 
-Be thorough in your analysis and ensure the JSON is valid and well-structured. Remember: ONLY return the JSON object, nothing else.`;
+IMPORTANT: Your response must be valid JSON that starts with { and ends with }. No other text, formatting, or characters should be included.`;
 
   return new Agent(llmService, systemPrompt);
 };

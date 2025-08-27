@@ -1,11 +1,17 @@
 import axios from 'axios';
+import { CacheService } from './cache';
 
 export class GutenbergService {
   private readonly baseUrl = 'https://www.gutenberg.org/files';
   private readonly maxTextLength = 5000; // Reduced for testing with API limits
+  private readonly cacheService: CacheService;
+
+  constructor() {
+    this.cacheService = new CacheService();
+  }
 
   /**
-   * Fetches the raw text of a book from Project Gutenberg
+   * Fetches the raw text of a book from Project Gutenberg with caching
    * @param bookId - The Project Gutenberg book ID
    * @returns Promise<string> - The book text (truncated to maxTextLength characters)
    * @throws Error - If the book ID is invalid or the network request fails
@@ -18,6 +24,19 @@ export class GutenbergService {
       }
 
       const cleanBookId = bookId.trim();
+      const cacheKey = this.cacheService.generateBookKey(cleanBookId);
+
+      // Try to get from cache first
+      const cachedText = await this.cacheService.get<string>(cacheKey);
+      if (cachedText) {
+        console.log(`Cache hit for book ${cleanBookId}`);
+        return cachedText;
+      }
+
+      console.log(
+        `Cache miss for book ${cleanBookId}, fetching from Gutenberg...`
+      );
+
       const url = `${this.baseUrl}/${cleanBookId}/${cleanBookId}-0.txt`;
 
       const response = await axios.get(url, {
@@ -43,11 +62,20 @@ export class GutenbergService {
           ? bookText.substring(0, this.maxTextLength) + '...'
           : bookText;
 
+      // Cache the result
+      await this.cacheService.set(cacheKey, truncatedText);
+      console.log(`Cached book ${cleanBookId} text`);
+
       return truncatedText;
     } catch (error) {
       // Check if it's an Axios error by checking the isAxiosError property
-      if ((error as any)?.isAxiosError) {
-        const axiosError = error as any;
+      if ((error as { isAxiosError?: boolean })?.isAxiosError) {
+        const axiosError = error as {
+          isAxiosError: boolean;
+          response?: { status: number };
+          code?: string;
+          message: string;
+        };
         if (axiosError.response?.status === 404) {
           throw new Error(`Book with ID ${bookId} not found`);
         }

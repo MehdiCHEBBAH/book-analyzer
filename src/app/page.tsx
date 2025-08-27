@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import CharacterNetwork from '@/components/CharacterNetwork';
+import ChatBox from '@/components/ChatBox';
 
 interface AnalysisResult {
   bookId: string;
@@ -28,6 +30,7 @@ export default function Home() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const handleAnalyze = async () => {
     if (!bookId.trim()) {
@@ -81,14 +84,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      {/* Background decoration - optimized for performance */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob will-change-transform"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000 will-change-transform"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000 will-change-transform"></div>
       </div>
 
-      <div className="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8 transform-gpu">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
@@ -417,6 +420,11 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Character Network Visualization */}
+                <div className="mb-8">
+                  <CharacterNetwork analysisResult={analysisResult} />
+                </div>
+
                 {/* Character Relationships */}
                 <div className="mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -521,20 +529,21 @@ export default function Home() {
       <style jsx>{`
         @keyframes blob {
           0% {
-            transform: translate(0px, 0px) scale(1);
+            transform: translate3d(0px, 0px, 0) scale(1);
           }
           33% {
-            transform: translate(30px, -50px) scale(1.1);
+            transform: translate3d(30px, -50px, 0) scale(1.1);
           }
           66% {
-            transform: translate(-20px, 20px) scale(0.9);
+            transform: translate3d(-20px, 20px, 0) scale(0.9);
           }
           100% {
-            transform: translate(0px, 0px) scale(1);
+            transform: translate3d(0px, 0px, 0) scale(1);
           }
         }
         .animate-blob {
-          animation: blob 7s infinite;
+          animation: blob 10s infinite ease-in-out;
+          will-change: transform;
         }
         .animation-delay-2000 {
           animation-delay: 2s;
@@ -543,6 +552,13 @@ export default function Home() {
           animation-delay: 4s;
         }
       `}</style>
+
+      {/* Chat Box */}
+      <ChatBox
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen(!isChatOpen)}
+        analysisResult={analysisResult}
+      />
     </div>
   );
 }

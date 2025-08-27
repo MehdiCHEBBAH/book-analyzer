@@ -5,6 +5,18 @@ import { GutenbergService } from '../../../src/lib/services/gutenberg';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock the cache service
+jest.mock('../../../src/lib/services/cache', () => ({
+  CacheService: jest.fn().mockImplementation(() => ({
+    get: jest.fn().mockResolvedValue(null), // Default to cache miss
+    set: jest.fn().mockResolvedValue(true),
+    delete: jest.fn(),
+    exists: jest.fn(),
+    generateBookKey: jest.fn().mockReturnValue('book:test:text'),
+    generateAnalysisKey: jest.fn(),
+  })),
+}));
+
 describe('GutenbergService', () => {
   let gutenbergService: GutenbergService;
 

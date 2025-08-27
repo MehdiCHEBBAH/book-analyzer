@@ -5,6 +5,7 @@ jest.mock('../../../../src/lib/services', () => ({
   })),
   GroqLLMService: jest.fn(),
   GutenbergService: jest.fn(),
+  CacheService: jest.fn(),
 }));
 
 // Mock Next.js server components
@@ -49,13 +50,26 @@ describe('/api/analyze', () => {
       chat: jest.fn(),
     };
 
+    const mockCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      generateAnalysisKey: jest.fn(),
+    };
+
     // Replace the constructor calls with our mock instances
-    (services.GutenbergService as any).mockImplementation(
-      () => mockGutenbergService
-    );
-    (services.BookAnalysisAgent as any).mockImplementation(
-      () => mockAnalysisAgent
-    );
+    (
+      services.GutenbergService as jest.MockedClass<
+        typeof services.GutenbergService
+      >
+    ).mockImplementation(() => mockGutenbergService);
+    (
+      services.BookAnalysisAgent as jest.MockedFunction<
+        typeof services.BookAnalysisAgent
+      >
+    ).mockImplementation(() => mockAnalysisAgent);
+    (
+      services.CacheService as jest.MockedClass<typeof services.CacheService>
+    ).mockImplementation(() => mockCacheService);
   });
 
   afterEach(() => {
@@ -88,6 +102,7 @@ describe('/api/analyze', () => {
     const bookId = '12345';
     const bookText = 'In a hole in the ground there lived a hobbit...';
     const analysisResponse = JSON.stringify({
+      author: 'J.R.R. Tolkien',
       characters: [
         {
           name: 'Bilbo Baggins',
@@ -112,12 +127,21 @@ describe('/api/analyze', () => {
 
     expect(response.status).toBe(200);
     expect(data.bookId).toBe(bookId);
-    expect(data.analysis).toEqual(JSON.parse(analysisResponse));
+    expect(data.analysis).toEqual({
+      characterRelationships: [],
+      keyCharacters: ['Bilbo Baggins'],
+      summary: 'A hobbit goes on an adventure',
+      themes: ['Adventure', 'Friendship'],
+      wordCount: 10,
+    });
     expect(data.timestamp).toBeDefined();
 
     expect(mockGutenbergService.getBookText).toHaveBeenCalledWith(bookId);
     expect(mockAnalysisAgent.chat).toHaveBeenCalledWith([
-      { role: 'user', content: bookText },
+      {
+        role: 'user',
+        content: expect.stringContaining(bookText),
+      },
     ]);
   });
 
@@ -209,7 +233,9 @@ describe('/api/analyze', () => {
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data.error).toBe('Invalid analysis response format');
+    expect(data.error).toBe(
+      'Invalid analysis response format - LLM did not return valid JSON'
+    );
   });
 
   it('should handle agent service errors', async () => {
