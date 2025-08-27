@@ -1,8 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Book Analyzer
+
+A simple Next.js application with basic API endpoints.
 
 ## Getting Started
 
-First, run the development server:
+1. Copy the environment variables example file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Run the development server:
 
 ```bash
 npm run dev
@@ -16,9 +24,17 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## API Endpoints
+
+The application provides three simple API endpoints:
+
+- `GET /api/hello` - Returns a hello world message with timestamp
+- `GET /api/health` - Health check endpoint with system information
+- `GET /api/status` - Detailed status information including memory usage
 
 ## Learn More
 
