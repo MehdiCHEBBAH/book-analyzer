@@ -129,31 +129,42 @@ ${bookText}`,
     // Transform the agent response to match UI expectations
     const transformedAnalysis = {
       characterRelationships:
-        parsedAnalysis.characters?.flatMap(
-          (character: {
-            name: string;
-            relationships?: Array<{
-              target: string;
-              description: string;
-              strength: string;
-            }>;
-          }) =>
-            character.relationships?.map(rel => ({
-              character1: character.name,
-              character2: rel.target,
-              relationship: rel.description,
+        parsedAnalysis.relationships?.map(
+          (rel: {
+            character1_id: string;
+            character2_id: string;
+            description: string;
+            strength: string;
+            relationship: string;
+          }) => {
+            // Find character names by ID
+            const char1 = parsedAnalysis.characters?.find(
+              (c: { id: string; name: string }) => c.id === rel.character1_id
+            );
+            const char2 = parsedAnalysis.characters?.find(
+              (c: { id: string; name: string }) => c.id === rel.character2_id
+            );
+
+            return {
+              character1: char1?.name || rel.character1_id,
+              character2: char2?.name || rel.character2_id,
+              relationship: rel.description || rel.relationship,
               strength: rel.strength || ('moderate' as const),
-            })) || []
+            };
+          }
         ) || [],
       keyCharacters:
         parsedAnalysis.characters?.map(
           (char: {
+            id: string;
             name: string;
+            aliases?: string[];
             importance: number;
             description?: string;
             moral_category?: string;
           }) => ({
             name: char.name,
+            aliases: char.aliases || [],
             importance: char.importance || 5,
             description: char.description || '',
             moral_category: char.moral_category || 'neutral',
@@ -162,13 +173,30 @@ ${bookText}`,
       themes: parsedAnalysis.themes || [],
       summary: parsedAnalysis.plot_summary || 'No summary available',
       wordCount: bookText.split(/\s+/).length, // Approximate word count
-      keyEvents: parsedAnalysis.key_events || [],
+      keyEvents:
+        parsedAnalysis.key_events?.map(
+          (event: {
+            event: string;
+            significance: string;
+            characters_involved: string[];
+          }) => ({
+            event: event.event,
+            significance: event.significance,
+            characters_involved:
+              event.characters_involved?.map((charId: string) => {
+                const char = parsedAnalysis.characters?.find(
+                  (c: { id: string; name: string }) => c.id === charId
+                );
+                return char?.name || charId;
+              }) || [],
+          })
+        ) || [],
     };
 
     // Return the structured analysis result
     const analysisResult = {
       bookId,
-      title: `Book ID: ${bookId}`, // We don't have title from Gutenberg, could be enhanced
+      title: parsedAnalysis.title || `Book ID: ${bookId}`,
       author: parsedAnalysis.author || 'Unknown Author',
       analysis: transformedAnalysis,
       timestamp: new Date().toISOString(),

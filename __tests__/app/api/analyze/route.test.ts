@@ -106,12 +106,25 @@ describe('/api/analyze', () => {
     const bookId = '12345';
     const bookText = 'In a hole in the ground there lived a hobbit...';
     const analysisResponse = JSON.stringify({
+      title: 'The Hobbit',
       author: 'J.R.R. Tolkien',
       characters: [
         {
+          id: 'char_001',
           name: 'Bilbo Baggins',
+          aliases: ['Bilbo', 'Mr. Baggins'],
           description: 'A hobbit who lives in a hole in the ground',
-          relationships: [],
+          importance: 'protagonist',
+          moral_category: 'heroic',
+        },
+      ],
+      relationships: [
+        {
+          character1_id: 'char_001',
+          character2_id: 'char_002',
+          relationship: 'mentor',
+          description: 'Gandalf guides Bilbo on his adventure',
+          strength: 'strong',
         },
       ],
       plot_summary: 'A hobbit goes on an adventure',
@@ -131,14 +144,23 @@ describe('/api/analyze', () => {
 
     expect(response.status).toBe(200);
     expect(data.bookId).toBe(bookId);
+    expect(data.title).toBe('The Hobbit');
     expect(data.analysis).toEqual({
-      characterRelationships: [],
+      characterRelationships: [
+        {
+          character1: 'Bilbo Baggins',
+          character2: 'char_002',
+          relationship: 'Gandalf guides Bilbo on his adventure',
+          strength: 'strong',
+        },
+      ],
       keyCharacters: [
         {
           name: 'Bilbo Baggins',
-          importance: 5,
+          aliases: ['Bilbo', 'Mr. Baggins'],
+          importance: 'protagonist',
           description: 'A hobbit who lives in a hole in the ground',
-          moral_category: 'neutral',
+          moral_category: 'heroic',
         },
       ],
       summary: 'A hobbit goes on an adventure',

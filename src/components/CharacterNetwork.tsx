@@ -18,7 +18,8 @@ interface AnalysisResult {
     characterRelationships: CharacterRelationship[];
     keyCharacters: Array<{
       name: string;
-      importance: number;
+      aliases: string[];
+      importance: string;
       description: string;
       moral_category: string;
     }>;
@@ -43,7 +44,7 @@ interface Node extends d3.SimulationNodeDatum {
   name: string;
   interactionCount: number;
   group: number;
-  importance: number;
+  importance: string;
   moral_category: string;
 }
 
@@ -105,7 +106,8 @@ export default function CharacterNetwork({
       // Only create links between characters that exist in the nodes array
       if (
         validCharacters.has(rel.character1) &&
-        validCharacters.has(rel.character2)
+        validCharacters.has(rel.character2) &&
+        rel.character1 !== rel.character2 // Avoid self-loops
       ) {
         const key = [rel.character1, rel.character2].sort().join('|');
         if (!linkMap.has(key)) {
@@ -116,6 +118,30 @@ export default function CharacterNetwork({
             strength: rel.strength,
             interactionCount: 1,
           });
+        } else {
+          // If we have multiple relationships between the same characters,
+          // combine them or keep the stronger one
+          const existing = linkMap.get(key)!;
+          const existingStrength =
+            existing.strength === 'strong'
+              ? 3
+              : existing.strength === 'moderate'
+                ? 2
+                : 1;
+          const newStrength =
+            rel.strength === 'strong' ? 3 : rel.strength === 'moderate' ? 2 : 1;
+
+          if (newStrength > existingStrength) {
+            linkMap.set(key, {
+              source: rel.character1,
+              target: rel.character2,
+              relationship: rel.relationship,
+              strength: rel.strength,
+              interactionCount: existing.interactionCount + 1,
+            });
+          } else {
+            existing.interactionCount += 1;
+          }
         }
       }
     });
@@ -231,36 +257,7 @@ export default function CharacterNetwork({
       .data(links)
       .enter()
       .append('line')
-      .attr('stroke', (d: Link) => {
-        // Color based on relationship type
-        const relationship = d.relationship.toLowerCase();
-        if (
-          relationship.includes('romantic') ||
-          relationship.includes('love')
-        ) {
-          return '#EC4899'; // Pink for romantic
-        } else if (
-          relationship.includes('family') ||
-          relationship.includes('parent') ||
-          relationship.includes('child')
-        ) {
-          return '#10B981'; // Green for family
-        } else if (
-          relationship.includes('friend') ||
-          relationship.includes('ally')
-        ) {
-          return '#3B82F6'; // Blue for friendship
-        } else if (
-          relationship.includes('enemy') ||
-          relationship.includes('rival') ||
-          relationship.includes('antagonist')
-        ) {
-          return '#EF4444'; // Red for enemies
-        } else {
-          // Default color for other relationship types
-          return '#6B7280'; // Gray for other relationships
-        }
-      })
+      .attr('stroke', '#6B7280') // All links are gray
       .attr('stroke-opacity', 0.7)
       .attr('stroke-width', (d: Link) => {
         switch (d.strength) {
@@ -295,7 +292,18 @@ export default function CharacterNetwork({
     // Add circles to nodes with enhanced styling
     node
       .append('circle')
-      .attr('r', (d: Node) => d.importance * 3 + 20)
+      .attr('r', (d: Node) => {
+        const importanceOrder = {
+          protagonist: 5,
+          major: 4,
+          supporting: 3,
+          minor: 2,
+          background: 1,
+        };
+        const importanceValue =
+          importanceOrder[d.importance as keyof typeof importanceOrder] || 1;
+        return importanceValue * 3 + 20;
+      })
       .attr('fill', (d: Node) => getMoralCategoryColor(d.moral_category))
       .attr('stroke', '#ffffff')
       .attr('stroke-width', 3)
@@ -306,7 +314,22 @@ export default function CharacterNetwork({
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', d.importance * 3 + 25)
+          .attr(
+            'r',
+            (() => {
+              const importanceOrder = {
+                protagonist: 5,
+                major: 4,
+                supporting: 3,
+                minor: 2,
+                background: 1,
+              };
+              const importanceValue =
+                importanceOrder[d.importance as keyof typeof importanceOrder] ||
+                1;
+              return importanceValue * 3 + 25;
+            })()
+          )
           .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))');
 
         // Highlight connected links with performance optimization
@@ -334,7 +357,22 @@ export default function CharacterNetwork({
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', d.importance * 3 + 20)
+          .attr(
+            'r',
+            (() => {
+              const importanceOrder = {
+                protagonist: 5,
+                major: 4,
+                supporting: 3,
+                minor: 2,
+                background: 1,
+              };
+              const importanceValue =
+                importanceOrder[d.importance as keyof typeof importanceOrder] ||
+                1;
+              return importanceValue * 3 + 20;
+            })()
+          )
           .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
 
         // Reset link styles
@@ -614,42 +652,12 @@ export default function CharacterNetwork({
           </div>
         </div>
 
-        {/* Right Column - Edge Types and Strength */}
+        {/* Right Column - Edge Strength */}
         <div>
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">
-            Edge Types (Relationship Categories)
-          </h4>
-          <div className="grid grid-cols-1 gap-3 text-sm mb-6">
-            <div className="flex items-center bg-gray-50 rounded-lg p-3">
-              <div className="w-8 h-1 bg-pink-500 mr-3 rounded-sm"></div>
-              <span className="font-medium text-gray-700">
-                Romantic relationships
-              </span>
-            </div>
-            <div className="flex items-center bg-gray-50 rounded-lg p-3">
-              <div className="w-8 h-1 bg-green-500 mr-3 rounded-sm"></div>
-              <span className="font-medium text-gray-700">
-                Family relationships
-              </span>
-            </div>
-            <div className="flex items-center bg-gray-50 rounded-lg p-3">
-              <div className="w-8 h-1 bg-blue-500 mr-3 rounded-sm"></div>
-              <span className="font-medium text-gray-700">
-                Friendship relationships
-              </span>
-            </div>
-            <div className="flex items-center bg-gray-50 rounded-lg p-3">
-              <div className="w-8 h-1 bg-red-500 mr-3 rounded-sm"></div>
-              <span className="font-medium text-gray-700">
-                Enemy relationships
-              </span>
-            </div>
-          </div>
-
           <h4 className="text-sm font-semibold text-gray-800 mb-3">
             Edge Strength (Relationship Intensity)
           </h4>
-          <div className="grid grid-cols-1 gap-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 text-sm mb-6">
             <div className="flex items-center bg-gray-50 rounded-lg p-3">
               <div className="w-8 h-1 bg-gray-600 mr-3 rounded-sm"></div>
               <span className="font-medium text-gray-700">

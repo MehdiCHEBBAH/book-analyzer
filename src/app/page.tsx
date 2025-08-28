@@ -17,7 +17,8 @@ interface AnalysisResult {
     }>;
     keyCharacters: Array<{
       name: string;
-      importance: number;
+      aliases: string[];
+      importance: string;
       description: string;
       moral_category: string;
     }>;
@@ -452,7 +453,23 @@ export default function Home() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {analysisResult.analysis.keyCharacters
-                      .sort((a, b) => b.importance - a.importance)
+                      .sort((a, b) => {
+                        const importanceOrder = {
+                          protagonist: 5,
+                          major: 4,
+                          supporting: 3,
+                          minor: 2,
+                          background: 1,
+                        };
+                        return (
+                          (importanceOrder[
+                            b.importance as keyof typeof importanceOrder
+                          ] || 0) -
+                          (importanceOrder[
+                            a.importance as keyof typeof importanceOrder
+                          ] || 0)
+                        );
+                      })
                       .map((character, index) => (
                         <div
                           key={index}
@@ -462,10 +479,30 @@ export default function Home() {
                             <h4 className="font-semibold text-indigo-900">
                               {character.name}
                             </h4>
-                            <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold">
-                              {character.importance}/10
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold capitalize">
+                              {character.importance}
                             </span>
                           </div>
+                          {character.aliases &&
+                            character.aliases.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-xs text-gray-500 mb-1">
+                                  Also known as:
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {character.aliases.map(
+                                    (alias, aliasIndex) => (
+                                      <span
+                                        key={aliasIndex}
+                                        className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
+                                      >
+                                        {alias}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           {character.description && (
                             <p className="text-sm text-gray-600 leading-relaxed">
                               {character.description}

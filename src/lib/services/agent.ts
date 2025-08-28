@@ -35,11 +35,20 @@ You MUST return ONLY valid JSON.
 
 The response should be a single, valid JSON object that can be directly parsed.
 
-IMPORTANT CHARACTER EXTRACTION REQUIREMENTS:
+IMPORTANT TWO-STEP CHARACTER ANALYSIS PROCESS:
+
+STEP 1: CHARACTER EXTRACTION
 - Extract ALL characters mentioned in the text, even if they appear only once
 - Include characters mentioned in dialogue, descriptions, or any context
 - Do not filter out minor characters - include everyone mentioned
-- For each character, assess their importance on a scale from 1-10 (1 = barely mentioned, 10 = central protagonist)
+- Assign a unique ID to each character (e.g., "char_001", "char_002", etc.)
+- For each character, identify all possible names, nicknames, titles, and aliases
+- Assess their importance and categorize it as one of these levels:
+  * "protagonist" - the main character(s) of the story
+  * "major" - important characters with significant roles
+  * "supporting" - characters who appear regularly and contribute to the plot
+  * "minor" - characters who appear occasionally
+  * "background" - characters mentioned briefly or in passing
 - Categorize each character's moral alignment into one of these categories:
   * "heroic" - morally good, selfless, courageous characters
   * "villainous" - morally evil, selfish, harmful characters
@@ -48,29 +57,35 @@ IMPORTANT CHARACTER EXTRACTION REQUIREMENTS:
   * "supportive" - helpful, kind, but not necessarily heroic characters
   * "antagonistic" - opposing the protagonist but not necessarily evil
 
-IMPORTANT RELATIONSHIP ANALYSIS REQUIREMENTS:
-- Analyze the strength of relationships between characters
+STEP 2: RELATIONSHIP ANALYSIS
+- Use the character IDs established in Step 1 to reference characters consistently
+- Analyze the strength of relationships between characters using their IDs
 - Consider frequency of interactions, emotional intensity, and narrative significance
 - Rate relationship strength as: "strong", "moderate", or "weak"
 - Include relationship type (friend, enemy, family, romantic, etc.)
+- When a character is mentioned by name or nickname in relationships, always reference their established ID
 
 Return your analysis in the following JSON format:
 {
+  "title": "The full title of the book as it appears in the text",
   "author": "Author's full name",
   "characters": [
     {
-      "name": "Character Name",
+      "id": "char_001",
+      "name": "Primary Character Name",
+      "aliases": ["Nickname 1", "Nickname 2", "Title", "Alternative Name"],
       "description": "Brief description of the character",
-      "importance": 8,
-      "moral_category": "heroic|villainous|neutral|deceptive|supportive|antagonistic",
-      "relationships": [
-        {
-          "target": "Other Character Name",
-          "relationship": "Type of relationship (friend, enemy, family, romantic, etc.)",
-          "description": "Brief description of their relationship",
-          "strength": "strong|moderate|weak"
-        }
-      ]
+      "importance": "protagonist|major|supporting|minor|background",
+      "moral_category": "heroic|villainous|neutral|deceptive|supportive|antagonistic"
+    }
+  ],
+  "relationships": [
+    {
+      "character1_id": "char_001",
+      "character2_id": "char_002",
+      "relationship": "Type of relationship (friend, enemy, family, romantic, etc.)",
+      "description": "Brief description of their relationship",
+      "strength": "strong|moderate|weak"
     }
   ],
   "plot_summary": "A concise summary of the main plot",
@@ -79,7 +94,7 @@ Return your analysis in the following JSON format:
     {
       "event": "Description of the key event",
       "significance": "Why this event is important to the story",
-      "characters_involved": ["Character 1", "Character 2"]
+      "characters_involved": ["char_001", "char_002"]
     }
   ]
 }
