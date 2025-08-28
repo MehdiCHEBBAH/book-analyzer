@@ -47,9 +47,8 @@ vercel
 
 3. For Vercel deployment, add environment variables in the Vercel dashboard under Project Settings > Environment Variables:
    - `GROQ_API_KEY` - Your Groq API key (required)
-   - `GROQ_MODEL` - Optional: Customize the LLM model (default: openai/gpt-oss-20b)
+   - `GROQ_MODEL` - Optional: Customize the LLM model (default: openai/gpt-oss-120b)
    - `GROQ_TEMPERATURE` - Optional: Control response randomness
-   - `GROQ_MAX_TOKENS` - Optional: Maximum tokens in response
 
 **Important**: The `GROQ_API_KEY` environment variable is required for the LLM functionality to work. Get your API key from [https://console.groq.com/](https://console.groq.com/).
 
