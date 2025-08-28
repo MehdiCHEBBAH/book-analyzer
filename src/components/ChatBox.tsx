@@ -10,21 +10,30 @@ interface Message {
 interface ChatBoxProps {
   isOpen: boolean;
   onToggle: () => void;
+  bookId: string;
   analysisResult?: any;
 }
 
 export default function ChatBox({
   isOpen,
   onToggle,
+  bookId,
   analysisResult,
 }: ChatBoxProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content:
-        "Hello! I'm your book analysis assistant. I can help you understand the characters, themes, and plot of the analyzed book. What would you like to know?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Initialize messages when analysis result is available
+  useEffect(() => {
+    if (analysisResult) {
+      setMessages([
+        {
+          role: 'assistant',
+          content:
+            `Hello! I'm your book analysis assistant for "${analysisResult.title}" by ${analysisResult.author}. I can help you understand the characters, themes, and plot of this book. What would you like to know?`,
+        },
+      ]);
+    }
+  }, [analysisResult]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -60,7 +69,7 @@ export default function ChatBox({
         },
         body: JSON.stringify({
           messages: conversationHistory, // Send the full conversation history
-          bookText: analysisResult?.bookText, // Include the full book text
+          bookId: bookId, // Include the book ID for context
         }),
       });
 
@@ -98,12 +107,13 @@ export default function ChatBox({
 
   return (
     <>
-      {/* Chat Toggle Button */}
-      <button
-        onClick={onToggle}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
-        aria-label="Toggle chat"
-      >
+      {/* Chat Toggle Button - Only show when book is analyzed */}
+      {analysisResult && (
+        <button
+          onClick={onToggle}
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+          aria-label="Toggle chat"
+        >
         {isOpen ? (
           <svg
             className="w-6 h-6"
@@ -133,10 +143,11 @@ export default function ChatBox({
             />
           </svg>
         )}
-      </button>
+        </button>
+      )}
 
-      {/* Chat Panel */}
-      {isOpen && (
+      {/* Chat Panel - Only show when book is analyzed and chat is open */}
+      {isOpen && analysisResult && (
         <div className="fixed bottom-24 right-6 z-40 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col">
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-t-2xl">
@@ -177,13 +188,13 @@ export default function ChatBox({
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
+                      : 'bg-gray-200 text-gray-900'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
+                  <p className="text-sm whitespace-pre-wrap font-medium">
                     {message.content}
                   </p>
                 </div>
@@ -192,20 +203,20 @@ export default function ChatBox({
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 max-w-xs lg:max-w-md px-4 py-2 rounded-2xl">
+                <div className="bg-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm">
                   <div className="flex items-center space-x-2">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"></div>
                       <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
                         style={{ animationDelay: '0.1s' }}
                       ></div>
                       <div
-                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        className="w-2 h-2 bg-gray-600 rounded-full animate-bounce"
                         style={{ animationDelay: '0.2s' }}
                       ></div>
                     </div>
-                    <span className="text-sm text-gray-500">Thinking...</span>
+                    <span className="text-sm text-gray-800 font-medium">Thinking...</span>
                   </div>
                 </div>
               </div>
@@ -215,21 +226,21 @@ export default function ChatBox({
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex space-x-2">
+          <div className="p-4 border-t border-gray-300 bg-gray-50">
+            <div className="flex space-x-3">
               <textarea
                 value={inputMessage}
                 onChange={e => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about the book..."
-                className="flex-1 resize-none border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="flex-1 resize-none border-2 border-gray-400 rounded-xl px-4 py-3 text-sm bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 placeholder-gray-600 text-gray-900 font-medium"
                 rows={1}
                 disabled={isLoading}
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl px-4 py-2 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl px-4 py-3 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
               >
                 <svg
                   className="w-4 h-4"
@@ -246,7 +257,7 @@ export default function ChatBox({
                 </svg>
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               Press Enter to send, Shift+Enter for new line
             </p>
           </div>

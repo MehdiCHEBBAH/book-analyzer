@@ -553,12 +553,15 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Chat Box */}
-      <ChatBox
-        isOpen={isChatOpen}
-        onToggle={() => setIsChatOpen(!isChatOpen)}
-        analysisResult={analysisResult}
-      />
+      {/* Chat Box - Only show when book is analyzed */}
+      {analysisResult && (
+        <ChatBox
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+          bookId={analysisResult.bookId}
+          analysisResult={analysisResult}
+        />
+      )}
     </div>
   );
 }

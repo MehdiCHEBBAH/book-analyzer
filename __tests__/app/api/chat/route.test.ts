@@ -4,6 +4,7 @@ jest.mock('../../../../src/lib/services', () => ({
     chat: jest.fn(),
   })),
   GroqLLMService: jest.fn(),
+  GutenbergService: jest.fn(),
 }));
 
 // Mock Next.js server components
@@ -39,6 +40,7 @@ import { NextRequest } from 'next/server';
 
 describe('/api/chat', () => {
   let mockChatAgent: any;
+  let mockGutenbergService: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -55,8 +57,13 @@ describe('/api/chat', () => {
       chat: jest.fn(),
     };
 
+    mockGutenbergService = {
+      getBookText: jest.fn(),
+    };
+
     // Replace the constructor calls with our mock instances
     (services.BookChatAgent as any).mockImplementation(() => mockChatAgent);
+    (services.GutenbergService as any).mockImplementation(() => mockGutenbergService);
   });
 
   afterEach(() => {
@@ -89,15 +96,47 @@ describe('/api/chat', () => {
     expect(data.error).toBe('Messages array is required');
   });
 
+  it('should return 400 when bookId is missing', async () => {
+    const request = new NextRequest('http://localhost:3000/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'Hello' }] }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Book ID is required');
+  });
+
+  it('should return 400 when bookId is not a string', async () => {
+    const request = new NextRequest('http://localhost:3000/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        messages: [{ role: 'user', content: 'Hello' }],
+        bookId: 123
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Book ID is required');
+  });
+
   it('should successfully process a simple chat message', async () => {
     const messages = [{ role: 'user', content: 'Hello, how are you?' }];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const expectedResponse = 'I am doing well, thank you for asking!';
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockResolvedValueOnce(expectedResponse);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -105,7 +144,14 @@ describe('/api/chat', () => {
 
     expect(response.status).toBe(200);
     expect(data.response).toBe(expectedResponse);
-    expect(mockChatAgent.chat).toHaveBeenCalledWith(messages);
+    expect(mockGutenbergService.getBookText).toHaveBeenCalledWith(bookId);
+    expect(mockChatAgent.chat).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: expect.stringContaining(bookText)
+      },
+      ...messages
+    ]);
   });
 
   it('should handle multi-turn conversation correctly', async () => {
@@ -114,14 +160,17 @@ describe('/api/chat', () => {
       { role: 'assistant', content: 'This book is about a young wizard...' },
       { role: 'user', content: 'Who are the main characters?' },
     ];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const expectedResponse =
       'The main characters include Harry Potter, Ron Weasley, and Hermione Granger...';
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockResolvedValueOnce(expectedResponse);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -129,18 +178,28 @@ describe('/api/chat', () => {
 
     expect(response.status).toBe(200);
     expect(data.response).toBe(expectedResponse);
-    expect(mockChatAgent.chat).toHaveBeenCalledWith(messages);
+    expect(mockGutenbergService.getBookText).toHaveBeenCalledWith(bookId);
+    expect(mockChatAgent.chat).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: expect.stringContaining(bookText)
+      },
+      ...messages
+    ]);
   });
 
   it('should handle empty messages array', async () => {
     const messages: any[] = [];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const expectedResponse = 'Hello! How can I help you today?';
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockResolvedValueOnce(expectedResponse);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -148,7 +207,14 @@ describe('/api/chat', () => {
 
     expect(response.status).toBe(200);
     expect(data.response).toBe(expectedResponse);
-    expect(mockChatAgent.chat).toHaveBeenCalledWith(messages);
+    expect(mockGutenbergService.getBookText).toHaveBeenCalledWith(bookId);
+    expect(mockChatAgent.chat).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: expect.stringContaining(bookText)
+      },
+      ...messages
+    ]);
   });
 
   it('should handle book-specific questions', async () => {
@@ -158,14 +224,17 @@ describe('/api/chat', () => {
         content: 'In the book text provided, what happens in chapter 3?',
       },
     ];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const expectedResponse =
       'In chapter 3, the protagonist discovers a mysterious artifact...';
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockResolvedValueOnce(expectedResponse);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -173,18 +242,28 @@ describe('/api/chat', () => {
 
     expect(response.status).toBe(200);
     expect(data.response).toBe(expectedResponse);
-    expect(mockChatAgent.chat).toHaveBeenCalledWith(messages);
+    expect(mockGutenbergService.getBookText).toHaveBeenCalledWith(bookId);
+    expect(mockChatAgent.chat).toHaveBeenCalledWith([
+      {
+        role: 'system',
+        content: expect.stringContaining(bookText)
+      },
+      ...messages
+    ]);
   });
 
   it('should handle errors from the chat agent', async () => {
     const messages = [{ role: 'user', content: 'Hello' }];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const error = new Error('LLM service error');
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockRejectedValueOnce(error);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -196,13 +275,16 @@ describe('/api/chat', () => {
 
   it('should handle LLM service configuration errors', async () => {
     const messages = [{ role: 'user', content: 'Hello' }];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
     const error = new Error('GROQ_API_KEY environment variable is required');
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockRejectedValueOnce(error);
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);
@@ -214,12 +296,15 @@ describe('/api/chat', () => {
 
   it('should handle unknown errors', async () => {
     const messages = [{ role: 'user', content: 'Hello' }];
+    const bookId = '1342';
+    const bookText = 'Sample book text content';
 
+    mockGutenbergService.getBookText.mockResolvedValueOnce(bookText);
     mockChatAgent.chat.mockRejectedValueOnce('String error');
 
     const request = new NextRequest('http://localhost:3000/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, bookId }),
     });
 
     const response = await POST(request);

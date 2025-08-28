@@ -32,8 +32,8 @@ describe('CacheService', () => {
 
     cacheService = new CacheService();
 
-    // Get the mocked Redis instance
-    const { Redis } = jest.requireActual('@upstash/redis');
+    // Get the mocked Redis instance from the mock
+    const { Redis } = require('@upstash/redis');
     mockRedis = new Redis();
   });
 
