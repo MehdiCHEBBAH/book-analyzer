@@ -46,9 +46,64 @@ export default function Home() {
     'graph'
   );
 
+  // Client-side validation function
+  const validateBookId = (id: string): { isValid: boolean; error?: string } => {
+    const trimmedId = id.trim();
+
+    if (!trimmedId) {
+      return {
+        isValid: false,
+        error: 'Please enter a Project Gutenberg book ID',
+      };
+    }
+
+    if (trimmedId.length > 10) {
+      return {
+        isValid: false,
+        error: 'Book ID is too long (maximum 10 characters)',
+      };
+    }
+
+    if (!/^[0-9]+$/.test(trimmedId)) {
+      return {
+        isValid: false,
+        error: 'Book ID must contain only numeric digits',
+      };
+    }
+
+    const numericId = parseInt(trimmedId, 10);
+    if (isNaN(numericId) || numericId <= 0 || numericId > 99999) {
+      return {
+        isValid: false,
+        error: 'Book ID must be a positive number between 1 and 99999',
+      };
+    }
+
+    // Check for suspicious patterns
+    const suspiciousPatterns = [
+      /[<>\"'&]/g, // HTML/XML injection
+      /[;(){}[\]]/g, // Command injection
+      /\.\./g, // Path traversal
+      /\/\//g, // URL manipulation
+      /javascript:/gi, // JavaScript injection
+      /data:/gi, // Data URL injection
+      /vbscript:/gi, // VBScript injection
+    ];
+
+    for (const pattern of suspiciousPatterns) {
+      if (pattern.test(trimmedId)) {
+        return { isValid: false, error: 'Book ID contains invalid characters' };
+      }
+    }
+
+    return { isValid: true };
+  };
+
   const handleAnalyze = async () => {
-    if (!bookId.trim()) {
-      setError('Please enter a Project Gutenberg book ID');
+    // Client-side validation
+    const validation = validateBookId(bookId);
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid book ID');
       return;
     }
 
@@ -136,9 +191,16 @@ export default function Home() {
                     id="bookId"
                     type="text"
                     value={bookId}
-                    onChange={e => setBookId(e.target.value)}
+                    onChange={e => {
+                      setBookId(e.target.value);
+                      // Clear error when user starts typing
+                      if (error) setError(null);
+                    }}
+                    placeholder="e.g., 1342 (Pride and Prejudice)"
+                    maxLength={10}
+                    pattern="[0-9]*"
+                    inputMode="numeric"
                     onKeyPress={handleKeyPress}
-                    placeholder="Enter Project Gutenberg book ID (e.g., 1342 for Pride and Prejudice)"
                     className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200 text-lg bg-white/50 backdrop-blur-sm text-gray-900 placeholder-gray-500"
                     disabled={isLoading}
                   />

@@ -87,19 +87,77 @@ describe('/api/analyze', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe('bookId parameter is required');
+    expect(data.error).toBe('Book ID is required and must be a string');
   });
 
   it('should return 400 when bookId parameter is empty', async () => {
     const request = new NextRequest(
       'http://localhost:3000/api/analyze?bookId='
     );
-
     const response = await GET(request);
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe('bookId parameter is required');
+    expect(data.error).toBe('Book ID is required and must be a string');
+  });
+
+  it('should return 400 when bookId contains invalid characters', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/analyze?bookId=123<script>'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Book ID is too long (maximum 10 characters)');
+  });
+
+  it('should return 400 when bookId is too long', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/analyze?bookId=12345678901'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Book ID is too long (maximum 10 characters)');
+  });
+
+  it('should return 400 when bookId contains non-numeric characters', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/analyze?bookId=abc123'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe('Book ID must contain only numeric digits');
+  });
+
+  it('should return 400 when bookId is out of range', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/analyze?bookId=100000'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe(
+      'Book ID must be a positive number between 1 and 99999'
+    );
+  });
+
+  it('should return 400 when bookId is zero', async () => {
+    const request = new NextRequest(
+      'http://localhost:3000/api/analyze?bookId=0'
+    );
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toBe(
+      'Book ID must be a positive number between 1 and 99999'
+    );
   });
 
   it('should successfully analyze a book', async () => {

@@ -56,6 +56,26 @@ export class GutenbergService {
         throw new Error('Invalid response format: expected text content');
       }
 
+      // Additional content validation
+      if (bookText.length > 1000000) {
+        // 1MB limit
+        throw new Error('Book content is too large');
+      }
+
+      // Check for suspicious content patterns
+      const suspiciousContentPatterns = [
+        /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, // Script tags
+        /javascript:/gi, // JavaScript protocols
+        /data:text\/html/gi, // HTML data URLs
+        /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, // Iframe tags
+      ];
+
+      for (const pattern of suspiciousContentPatterns) {
+        if (pattern.test(bookText)) {
+          throw new Error('Book content contains suspicious patterns');
+        }
+      }
+
       // Truncate the text to optimize for LLM processing
       const truncatedText =
         bookText.length > this.maxTextLength

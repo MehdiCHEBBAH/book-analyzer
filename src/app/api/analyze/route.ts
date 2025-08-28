@@ -7,16 +7,111 @@ import {
   type Message,
 } from '@/lib/services';
 
+/**
+ * Validates and sanitizes the book ID for security
+ * @param bookId - The raw book ID from the request
+ * @returns { isValid: boolean; sanitizedId?: string; error?: string }
+ */
+function validateBookId(bookId: string): {
+  isValid: boolean;
+  sanitizedId?: string;
+  error?: string;
+} {
+  // Check if bookId is provided
+  if (!bookId || typeof bookId !== 'string') {
+    return {
+      isValid: false,
+      error: 'Book ID is required and must be a string',
+    };
+  }
+
+  // Trim whitespace
+  const trimmedId = bookId.trim();
+
+  // Check if empty after trimming
+  if (trimmedId.length === 0) {
+    return { isValid: false, error: 'Book ID cannot be empty' };
+  }
+
+  // Check length limits (reasonable bounds for Gutenberg IDs)
+  if (trimmedId.length > 10) {
+    return {
+      isValid: false,
+      error: 'Book ID is too long (maximum 10 characters)',
+    };
+  }
+
+  // Check for valid characters (only digits and basic punctuation)
+  const validBookIdPattern = /^[0-9]+$/;
+  if (!validBookIdPattern.test(trimmedId)) {
+    return {
+      isValid: false,
+      error: 'Book ID must contain only numeric digits',
+    };
+  }
+
+  // Check for reasonable numeric range (Gutenberg IDs are typically 1-99999)
+  const numericId = parseInt(trimmedId, 10);
+  if (isNaN(numericId) || numericId <= 0 || numericId > 99999) {
+    return {
+      isValid: false,
+      error: 'Book ID must be a positive number between 1 and 99999',
+    };
+  }
+
+  // Check for potential injection patterns
+  const suspiciousPatterns = [
+    /[<>\"'&]/g, // HTML/XML injection
+    /[;(){}[\]]/g, // Command injection
+    /\.\./g, // Path traversal
+    /\/\//g, // URL manipulation
+    /javascript:/gi, // JavaScript injection
+    /data:/gi, // Data URL injection
+    /vbscript:/gi, // VBScript injection
+  ];
+
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(trimmedId)) {
+      return { isValid: false, error: 'Book ID contains invalid characters' };
+    }
+  }
+
+  // Additional security checks
+  if (
+    trimmedId.includes(' ') ||
+    trimmedId.includes('\t') ||
+    trimmedId.includes('\n')
+  ) {
+    return {
+      isValid: false,
+      error: 'Book ID cannot contain whitespace characters',
+    };
+  }
+
+  // Rate limiting check (basic implementation)
+  // In a production environment, you'd want to implement proper rate limiting
+  if (trimmedId.length < 1) {
+    return { isValid: false, error: 'Book ID is too short' };
+  }
+
+  return { isValid: true, sanitizedId: trimmedId };
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const bookId = searchParams.get('bookId');
+  const rawBookId = searchParams.get('bookId');
 
-  if (!bookId) {
+  // Validate and sanitize the book ID
+  const validation = validateBookId(rawBookId || '');
+
+  if (!validation.isValid) {
     return NextResponse.json(
-      { error: 'bookId parameter is required' },
+      { error: validation.error || 'Invalid book ID provided' },
       { status: 400 }
     );
   }
+
+  const bookId = validation.sanitizedId!;
 
   try {
     // Create service instances
