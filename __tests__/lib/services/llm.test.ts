@@ -65,9 +65,9 @@ describe('GroqLLMService', () => {
 
       const result = await groqLLMService.callLLM(mockMessages);
 
-      expect(mockGroq).toHaveBeenCalledWith('openai/gpt-oss-20b');
+      expect(mockGroq).toHaveBeenCalledWith('openai/gpt-oss-120b');
       expect(mockGenerateText).toHaveBeenCalledWith({
-        model: { model: 'openai/gpt-oss-20b', provider: 'groq' },
+        model: { model: 'openai/gpt-oss-120b', provider: 'groq' },
         messages: mockMessages,
         temperature: 0.7,
       });
@@ -126,7 +126,7 @@ describe('GroqLLMService', () => {
       await groqLLMService.callLLM(complexMessages);
 
       expect(mockGenerateText).toHaveBeenCalledWith({
-        model: { model: 'openai/gpt-oss-20b', provider: 'groq' },
+        model: { model: 'openai/gpt-oss-120b', provider: 'groq' },
         messages: complexMessages,
         temperature: 0.7,
       });

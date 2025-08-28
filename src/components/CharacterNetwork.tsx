@@ -16,10 +16,20 @@ interface AnalysisResult {
   author: string;
   analysis: {
     characterRelationships: CharacterRelationship[];
-    keyCharacters: string[];
+    keyCharacters: Array<{
+      name: string;
+      importance: number;
+      description: string;
+      moral_category: string;
+    }>;
     themes: string[];
     summary: string;
     wordCount: number;
+    keyEvents: Array<{
+      event: string;
+      significance: string;
+      characters_involved: string[];
+    }>;
   };
   timestamp: string;
 }
@@ -33,6 +43,8 @@ interface Node extends d3.SimulationNodeDatum {
   name: string;
   interactionCount: number;
   group: number;
+  importance: number;
+  moral_category: string;
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
@@ -65,22 +77,25 @@ export default function CharacterNetwork({
     const characters = analysisResult.analysis.keyCharacters;
 
     // Create a set of valid character names for quick lookup
-    const validCharacters = new Set(characters);
+    const validCharacters = new Set(characters.map(char => char.name));
 
     // Create nodes with optimized data processing
     const nodes: Node[] = characters.map((character, index) => {
       const interactionCount = relationships.filter(
         rel =>
-          (rel.character1 === character || rel.character2 === character) &&
+          (rel.character1 === character.name ||
+            rel.character2 === character.name) &&
           validCharacters.has(rel.character1) &&
           validCharacters.has(rel.character2)
       ).length;
 
       return {
-        id: character,
-        name: character,
+        id: character.name,
+        name: character.name,
         interactionCount: Math.max(interactionCount, 1),
         group: index % 6, // More color variety
+        importance: character.importance,
+        moral_category: character.moral_category,
       };
     });
 
@@ -130,8 +145,8 @@ export default function CharacterNetwork({
     }
 
     // Responsive SVG sizing
-    const container = svgRef.current.parentElement;
-    const width = Math.min(800, container?.clientWidth || 800);
+    const parentContainer = svgRef.current.parentElement;
+    const width = Math.min(800, parentContainer?.clientWidth || 800);
     const height = Math.min(600, window.innerHeight * 0.6);
 
     const svg = d3
@@ -142,22 +157,42 @@ export default function CharacterNetwork({
       .style('max-width', '100%')
       .style('height', 'auto');
 
-    // Enhanced color palette
-    const colors = [
-      '#3B82F6',
-      '#8B5CF6',
-      '#EC4899',
-      '#10B981',
-      '#F59E0B',
-      '#EF4444',
-      '#06B6D4',
-      '#84CC16',
-      '#F97316',
-      '#6366F1',
-      '#14B8A6',
-      '#F43F5E',
-    ];
-    const color = d3.scaleOrdinal(colors);
+    // Create a container group for zoom transformations
+    const container = svg.append('g').attr('class', 'zoom-container');
+
+    // Add zoom behavior
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.1, 4]) // Min zoom 0.1x, max zoom 4x
+      .on('zoom', event => {
+        container.attr('transform', event.transform);
+      });
+
+    svg.call(zoom as any);
+
+    // Store zoom function for fit-to-view button
+    const zoomBehavior = zoom;
+    (svgRef.current as any).zoomBehavior = zoomBehavior;
+
+    // Moral category color mapping
+    const getMoralCategoryColor = (category: string): string => {
+      switch (category) {
+        case 'heroic':
+          return '#10B981'; // Green for heroic characters
+        case 'villainous':
+          return '#EF4444'; // Red for villainous characters
+        case 'neutral':
+          return '#6B7280'; // Gray for neutral characters
+        case 'deceptive':
+          return '#F59E0B'; // Orange for deceptive characters
+        case 'supportive':
+          return '#3B82F6'; // Blue for supportive characters
+        case 'antagonistic':
+          return '#8B5CF6'; // Purple for antagonistic characters
+        default:
+          return '#6B7280'; // Gray as default
+      }
+    };
 
     // Optimized force simulation with error handling
     let simulation: d3.Simulation<Node, Link> | undefined;
@@ -175,9 +210,7 @@ export default function CharacterNetwork({
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force(
           'collision',
-          d3
-            .forceCollide()
-            .radius((d: any) => Math.sqrt(d.interactionCount) * 10 + 25)
+          d3.forceCollide().radius((d: any) => d.importance * 3 + 20)
         )
         .alphaDecay(0.02) // Faster stabilization
         .velocityDecay(0.4);
@@ -191,7 +224,7 @@ export default function CharacterNetwork({
     }
 
     // Create links with improved styling
-    const link = svg
+    const link = container
       .append('g')
       .attr('class', 'links')
       .selectAll('line')
@@ -199,15 +232,33 @@ export default function CharacterNetwork({
       .enter()
       .append('line')
       .attr('stroke', (d: Link) => {
-        switch (d.strength) {
-          case 'strong':
-            return '#EF4444';
-          case 'moderate':
-            return '#F59E0B';
-          case 'weak':
-            return '#6B7280';
-          default:
-            return '#6B7280';
+        // Color based on relationship type
+        const relationship = d.relationship.toLowerCase();
+        if (
+          relationship.includes('romantic') ||
+          relationship.includes('love')
+        ) {
+          return '#EC4899'; // Pink for romantic
+        } else if (
+          relationship.includes('family') ||
+          relationship.includes('parent') ||
+          relationship.includes('child')
+        ) {
+          return '#10B981'; // Green for family
+        } else if (
+          relationship.includes('friend') ||
+          relationship.includes('ally')
+        ) {
+          return '#3B82F6'; // Blue for friendship
+        } else if (
+          relationship.includes('enemy') ||
+          relationship.includes('rival') ||
+          relationship.includes('antagonist')
+        ) {
+          return '#EF4444'; // Red for enemies
+        } else {
+          // Default color for other relationship types
+          return '#6B7280'; // Gray for other relationships
         }
       })
       .attr('stroke-opacity', 0.7)
@@ -226,7 +277,7 @@ export default function CharacterNetwork({
       .attr('stroke-linecap', 'round');
 
     // Create nodes with improved styling
-    const node = svg
+    const node = container
       .append('g')
       .attr('class', 'nodes')
       .selectAll('g')
@@ -244,8 +295,8 @@ export default function CharacterNetwork({
     // Add circles to nodes with enhanced styling
     node
       .append('circle')
-      .attr('r', (d: Node) => Math.sqrt(d.interactionCount) * 10 + 25)
-      .attr('fill', (d: Node) => color(d.group.toString()))
+      .attr('r', (d: Node) => d.importance * 3 + 20)
+      .attr('fill', (d: Node) => getMoralCategoryColor(d.moral_category))
       .attr('stroke', '#ffffff')
       .attr('stroke-width', 3)
       .attr('stroke-opacity', 0.8)
@@ -255,7 +306,7 @@ export default function CharacterNetwork({
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', Math.sqrt(d.interactionCount) * 10 + 30)
+          .attr('r', d.importance * 3 + 25)
           .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))');
 
         // Highlight connected links with performance optimization
@@ -283,7 +334,7 @@ export default function CharacterNetwork({
         d3.select(this)
           .transition()
           .duration(150)
-          .attr('r', Math.sqrt(d.interactionCount) * 10 + 25)
+          .attr('r', d.importance * 3 + 20)
           .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
 
         // Reset link styles
@@ -416,36 +467,208 @@ export default function CharacterNetwork({
       </h3>
 
       <div className="mb-4 text-sm text-gray-600">
-        <p>• Node size represents character interaction frequency</p>
-        <p>• Link thickness indicates relationship strength</p>
+        <p>• Node size represents character importance (1-10 scale)</p>
+        <p>
+          • Node colors indicate moral category (heroic, villainous, neutral,
+          etc.)
+        </p>
+        <p>
+          • Edge colors indicate relationship type (romantic, family,
+          friendship, enemy)
+        </p>
+        <p>
+          • Edge thickness indicates relationship strength (strong, moderate,
+          weak)
+        </p>
         <p>• Drag nodes to explore the network</p>
+        <p>• Scroll to zoom in/out, drag to pan</p>
       </div>
 
-      <div className="flex justify-center overflow-hidden">
+      <div className="flex justify-center overflow-hidden relative">
         <svg
           ref={svgRef}
           className="border border-gray-200 rounded-lg shadow-sm"
           style={{ maxWidth: '100%', height: 'auto' }}
           preserveAspectRatio="xMidYMid meet"
         />
+        <button
+          onClick={() => {
+            if (
+              svgRef.current &&
+              (svgRef.current as any).zoomBehavior &&
+              simulationRef.current
+            ) {
+              const zoomBehavior = (svgRef.current as any).zoomBehavior;
+              const svgElement = d3.select(svgRef.current);
+              const width =
+                svgElement.node()?.getBoundingClientRect().width || 800;
+              const height =
+                svgElement.node()?.getBoundingClientRect().height || 600;
+
+              // Get the actual node positions from the simulation
+              const simulation = simulationRef.current;
+              const simulationNodes = simulation.nodes() as Node[];
+
+              if (simulationNodes.length > 0) {
+                // Calculate the actual bounds of the nodes
+                const padding = 50;
+                const nodeRadius = 20; // Base radius for nodes
+
+                const xPositions = simulationNodes.map(n => n.x || 0);
+                const yPositions = simulationNodes.map(n => n.y || 0);
+
+                const minX = Math.min(...xPositions) - nodeRadius;
+                const maxX = Math.max(...xPositions) + nodeRadius;
+                const minY = Math.min(...yPositions) - nodeRadius;
+                const maxY = Math.max(...yPositions) + nodeRadius;
+
+                const graphWidth = maxX - minX;
+                const graphHeight = maxY - minY;
+                const graphCenterX = (minX + maxX) / 2;
+                const graphCenterY = (minY + maxY) / 2;
+
+                // Calculate scale to fit the graph
+                const scaleX = (width - padding * 2) / graphWidth;
+                const scaleY = (height - padding * 2) / graphHeight;
+                const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in more than 1x
+
+                // Calculate translation to center the graph
+                const translateX = width / 2 - graphCenterX * scale;
+                const translateY = height / 2 - graphCenterY * scale;
+
+                svgElement
+                  .transition()
+                  .duration(750)
+                  .call(
+                    zoomBehavior.transform,
+                    d3.zoomIdentity
+                      .translate(translateX, translateY)
+                      .scale(scale)
+                  );
+              }
+            }
+          }}
+          className="absolute top-2 right-2 bg-white hover:bg-gray-50 text-gray-700 px-3 py-1 rounded-md border border-gray-300 shadow-sm text-sm font-medium transition-colors duration-200 flex items-center gap-1"
+          title="Fit to view"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+            />
+          </svg>
+          Fit
+        </button>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div className="flex items-center bg-gray-50 rounded-lg p-3">
-          <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-          <span className="font-medium text-gray-700">
-            Strong relationships
-          </span>
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column - Node Categories */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">
+            Node Categories (Character Types)
+          </h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-green-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Heroic characters
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-red-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Villainous characters
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-gray-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Neutral characters
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-orange-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Deceptive characters
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-blue-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Supportive characters
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-4 h-4 bg-purple-500 rounded-full mr-3 border-2 border-white shadow-sm"></div>
+              <span className="font-medium text-gray-700">
+                Antagonistic characters
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center bg-gray-50 rounded-lg p-3">
-          <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-          <span className="font-medium text-gray-700">
-            Moderate relationships
-          </span>
-        </div>
-        <div className="flex items-center bg-gray-50 rounded-lg p-3">
-          <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
-          <span className="font-medium text-gray-700">Weak relationships</span>
+
+        {/* Right Column - Edge Types and Strength */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">
+            Edge Types (Relationship Categories)
+          </h4>
+          <div className="grid grid-cols-1 gap-3 text-sm mb-6">
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-1 bg-pink-500 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Romantic relationships
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-1 bg-green-500 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Family relationships
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-1 bg-blue-500 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Friendship relationships
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-1 bg-red-500 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Enemy relationships
+              </span>
+            </div>
+          </div>
+
+          <h4 className="text-sm font-semibold text-gray-800 mb-3">
+            Edge Strength (Relationship Intensity)
+          </h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-1 bg-gray-600 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Strong relationships (thick)
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-0.5 bg-gray-500 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Moderate relationships (medium)
+              </span>
+            </div>
+            <div className="flex items-center bg-gray-50 rounded-lg p-3">
+              <div className="w-8 h-px bg-gray-400 mr-3 rounded-sm"></div>
+              <span className="font-medium text-gray-700">
+                Weak relationships (thin)
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

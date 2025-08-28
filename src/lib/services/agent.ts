@@ -21,7 +21,7 @@ export class Agent {
 
 // Book Analysis Agent for structured data analysis
 export const BookAnalysisAgent = (llmService: AbstractLLMService) => {
-  const systemPrompt = `You are a meticulous book analyzer. Your task is to analyze the provided book text and return a machine-readable JSON object containing character relationships and key plot elements.
+  const systemPrompt = `You are a meticulous book analyzer. Your task is to analyze the provided book text and return a machine-readable JSON object containing character relationships, character importance, and key plot elements.
 
 ⚠️ CRITICAL JSON-ONLY REQUIREMENT ⚠️
 You MUST return ONLY valid JSON. 
@@ -35,6 +35,25 @@ You MUST return ONLY valid JSON.
 
 The response should be a single, valid JSON object that can be directly parsed.
 
+IMPORTANT CHARACTER EXTRACTION REQUIREMENTS:
+- Extract ALL characters mentioned in the text, even if they appear only once
+- Include characters mentioned in dialogue, descriptions, or any context
+- Do not filter out minor characters - include everyone mentioned
+- For each character, assess their importance on a scale from 1-10 (1 = barely mentioned, 10 = central protagonist)
+- Categorize each character's moral alignment into one of these categories:
+  * "heroic" - morally good, selfless, courageous characters
+  * "villainous" - morally evil, selfish, harmful characters
+  * "neutral" - morally ambiguous, neither clearly good nor evil
+  * "deceptive" - dishonest, manipulative, or untrustworthy characters
+  * "supportive" - helpful, kind, but not necessarily heroic characters
+  * "antagonistic" - opposing the protagonist but not necessarily evil
+
+IMPORTANT RELATIONSHIP ANALYSIS REQUIREMENTS:
+- Analyze the strength of relationships between characters
+- Consider frequency of interactions, emotional intensity, and narrative significance
+- Rate relationship strength as: "strong", "moderate", or "weak"
+- Include relationship type (friend, enemy, family, romantic, etc.)
+
 Return your analysis in the following JSON format:
 {
   "author": "Author's full name",
@@ -42,11 +61,14 @@ Return your analysis in the following JSON format:
     {
       "name": "Character Name",
       "description": "Brief description of the character",
+      "importance": 8,
+      "moral_category": "heroic|villainous|neutral|deceptive|supportive|antagonistic",
       "relationships": [
         {
           "target": "Other Character Name",
-          "relationship": "Type of relationship (friend, enemy, family, etc.)",
-          "description": "Brief description of their relationship"
+          "relationship": "Type of relationship (friend, enemy, family, romantic, etc.)",
+          "description": "Brief description of their relationship",
+          "strength": "strong|moderate|weak"
         }
       ]
     }
@@ -55,8 +77,9 @@ Return your analysis in the following JSON format:
   "themes": ["Theme 1", "Theme 2", "Theme 3"],
   "key_events": [
     {
-      "event": "Description of the event",
-      "significance": "Why this event is important"
+      "event": "Description of the key event",
+      "significance": "Why this event is important to the story",
+      "characters_involved": ["Character 1", "Character 2"]
     }
   ]
 }

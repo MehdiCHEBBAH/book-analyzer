@@ -103,11 +103,38 @@ describe('Home Component', () => {
             strength: 'strong',
           },
         ],
-        keyCharacters: ['Elizabeth Bennet', 'Mr. Darcy', 'Jane Bennet'],
+        keyCharacters: [
+          {
+            name: 'Elizabeth Bennet',
+            importance: 9,
+            description: 'The main protagonist, intelligent and witty',
+            moral_category: 'heroic',
+          },
+          {
+            name: 'Mr. Darcy',
+            importance: 8,
+            description:
+              'A wealthy gentleman, initially proud but ultimately kind',
+            moral_category: 'heroic',
+          },
+          {
+            name: 'Jane Bennet',
+            importance: 7,
+            description: "Elizabeth's older sister, beautiful and kind",
+            moral_category: 'supportive',
+          },
+        ],
         themes: ['Love', 'Marriage', 'Social Class'],
         summary:
           'A classic novel about love and marriage in Georgian-era England.',
         wordCount: 122189,
+        keyEvents: [
+          {
+            event: 'Mr. Darcy proposes to Elizabeth',
+            significance: 'A turning point in their relationship',
+            characters_involved: ['Elizabeth Bennet', 'Mr. Darcy'],
+          },
+        ],
       },
       timestamp: '2024-01-01T00:00:00.000Z',
     };
@@ -138,11 +165,18 @@ describe('Home Component', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('122,189')).toBeInTheDocument();
       expect(screen.getByText('3')).toBeInTheDocument(); // Key characters count
-      expect(screen.getByText('Elizabeth Bennet')).toBeInTheDocument();
-      expect(screen.getByText('Mr. Darcy')).toBeInTheDocument();
+      expect(screen.getAllByText('Elizabeth Bennet')).toHaveLength(2); // One in character list, one in key events
+      expect(screen.getAllByText('Mr. Darcy')).toHaveLength(2); // One in character list, one in key events
       expect(screen.getByText('Love')).toBeInTheDocument();
       expect(screen.getByText('Marriage')).toBeInTheDocument();
       expect(screen.getByText('Social Class')).toBeInTheDocument();
+    });
+
+    // Click on the Relationships tab to see the relationships
+    const relationshipsTab = screen.getByText('Relationships');
+    fireEvent.click(relationshipsTab);
+
+    await waitFor(() => {
       expect(
         screen.getByText('Elizabeth Bennet ↔ Mr. Darcy')
       ).toBeInTheDocument();
@@ -213,10 +247,17 @@ describe('Home Component', () => {
             strength: 'weak',
           },
         ],
-        keyCharacters: ['Character A'],
+        keyCharacters: [
+          {
+            name: 'Character A',
+            importance: 8,
+            description: 'Main character',
+          },
+        ],
         themes: ['Friendship'],
         summary: 'A test book.',
         wordCount: 1000,
+        keyEvents: [],
       },
       timestamp: '2024-01-01T00:00:00.000Z',
     };
@@ -235,6 +276,12 @@ describe('Home Component', () => {
 
     await act(async () => {
       fireEvent.click(button);
+    });
+
+    await waitFor(() => {
+      // Click on the Relationships tab to see the relationships
+      const relationshipsTab = screen.getByText('Relationships');
+      fireEvent.click(relationshipsTab);
     });
 
     await waitFor(() => {

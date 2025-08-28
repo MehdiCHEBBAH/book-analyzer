@@ -15,10 +15,20 @@ interface AnalysisResult {
       relationship: string;
       strength: 'strong' | 'moderate' | 'weak';
     }>;
-    keyCharacters: string[];
+    keyCharacters: Array<{
+      name: string;
+      importance: number;
+      description: string;
+      moral_category: string;
+    }>;
     themes: string[];
     summary: string;
     wordCount: number;
+    keyEvents: Array<{
+      event: string;
+      significance: string;
+      characters_involved: string[];
+    }>;
   };
   timestamp: string;
 }
@@ -31,6 +41,9 @@ export default function Home() {
   );
   const [error, setError] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'graph' | 'relationships'>(
+    'graph'
+  );
 
   const handleAnalyze = async () => {
     if (!bookId.trim()) {
@@ -388,88 +401,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Key Characters */}
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg
-                      className="w-6 h-6 mr-3 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                      />
-                    </svg>
-                    Key Characters
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
-                    {analysisResult.analysis.keyCharacters.map(
-                      (character, index) => (
-                        <span
-                          key={index}
-                          className="px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 rounded-full text-sm font-medium border border-indigo-200 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          {character}
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                {/* Character Network Visualization */}
-                <div className="mb-8">
-                  <CharacterNetwork analysisResult={analysisResult} />
-                </div>
-
-                {/* Character Relationships */}
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg
-                      className="w-6 h-6 mr-3 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Character Relationships
-                  </h3>
-                  <div className="space-y-4">
-                    {analysisResult.analysis.characterRelationships.map(
-                      (relationship, index) => (
-                        <div
-                          key={index}
-                          className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="font-semibold text-gray-900 text-lg">
-                              {relationship.character1} ↔{' '}
-                              {relationship.character2}
-                            </div>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRelationshipStrengthColor(relationship.strength)}`}
-                            >
-                              {relationship.strength}
-                            </span>
-                          </div>
-                          <p className="text-gray-700 leading-relaxed">
-                            {relationship.relationship}
-                          </p>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-
                 {/* Themes */}
                 <div className="mb-8">
                   <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -496,6 +427,223 @@ export default function Home() {
                       >
                         {theme}
                       </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* All Characters */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg
+                      className="w-6 h-6 mr-3 text-indigo-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                    All Characters (
+                    {analysisResult.analysis.keyCharacters.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {analysisResult.analysis.keyCharacters
+                      .sort((a, b) => b.importance - a.importance)
+                      .map((character, index) => (
+                        <div
+                          key={index}
+                          className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-indigo-900">
+                              {character.name}
+                            </h4>
+                            <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold">
+                              {character.importance}/10
+                            </span>
+                          </div>
+                          {character.description && (
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              {character.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Character Analysis Tabs */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg
+                      className="w-6 h-6 mr-3 text-indigo-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"
+                      />
+                    </svg>
+                    Character Analysis
+                  </h3>
+
+                  {/* Tab Navigation */}
+                  <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl mb-6">
+                    <button
+                      onClick={() => setActiveTab('graph')}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
+                        activeTab === 'graph'
+                          ? 'bg-white text-indigo-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"
+                          />
+                        </svg>
+                        Network Graph
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('relationships')}
+                      className={`flex-1 py-3 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
+                        activeTab === 'relationships'
+                          ? 'bg-white text-indigo-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                        Relationships
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Tab Content */}
+                  {activeTab === 'graph' && (
+                    <div>
+                      <CharacterNetwork analysisResult={analysisResult} />
+                    </div>
+                  )}
+
+                  {activeTab === 'relationships' && (
+                    <div>
+                      {/* Character Relationships */}
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                          Character Relationships
+                        </h4>
+                        <div className="space-y-4">
+                          {analysisResult.analysis.characterRelationships.map(
+                            (relationship, index) => (
+                              <div
+                                key={index}
+                                className="bg-gradient-to-r from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="font-semibold text-gray-900 text-lg">
+                                    {relationship.character1} ↔{' '}
+                                    {relationship.character2}
+                                  </div>
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRelationshipStrengthColor(relationship.strength)}`}
+                                  >
+                                    {relationship.strength}
+                                  </span>
+                                </div>
+                                <p className="text-gray-700 leading-relaxed">
+                                  {relationship.relationship}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Key Events */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg
+                      className="w-6 h-6 mr-3 text-indigo-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Key Events
+                  </h3>
+                  <div className="space-y-4">
+                    {analysisResult.analysis.keyEvents.map((event, index) => (
+                      <div
+                        key={index}
+                        className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-200 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-semibold text-gray-900 text-lg">
+                            Event {index + 1}
+                          </h4>
+                          {event.characters_involved &&
+                            event.characters_involved.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {event.characters_involved.map(
+                                  (character, charIndex) => (
+                                    <span
+                                      key={charIndex}
+                                      className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium"
+                                    >
+                                      {character}
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            )}
+                        </div>
+                        <p className="text-gray-700 leading-relaxed mb-3">
+                          {event.event}
+                        </p>
+                        <p className="text-sm text-gray-600 italic">
+                          <strong>Significance:</strong> {event.significance}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 </div>

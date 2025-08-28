@@ -21,7 +21,7 @@ export class GroqLLMService extends AbstractLLMService {
 
   async callLLM(messages: Message[]): Promise<string> {
     try {
-      const model = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+      const model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
       const temperature = parseFloat(process.env.GROQ_TEMPERATURE || '0.7');
 
       const result = await generateText({

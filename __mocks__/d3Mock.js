@@ -65,6 +65,13 @@ const d3Mock = {
       attr: jest.fn(),
     })),
   })),
+  zoom: jest.fn(() => ({
+    scaleExtent: jest.fn(() => ({
+      on: jest.fn(() => ({
+        on: jest.fn(),
+      })),
+    })),
+  })),
 };
 
 module.exports = d3Mock;

@@ -133,10 +133,18 @@ describe('/api/analyze', () => {
     expect(data.bookId).toBe(bookId);
     expect(data.analysis).toEqual({
       characterRelationships: [],
-      keyCharacters: ['Bilbo Baggins'],
+      keyCharacters: [
+        {
+          name: 'Bilbo Baggins',
+          importance: 5,
+          description: 'A hobbit who lives in a hole in the ground',
+          moral_category: 'neutral',
+        },
+      ],
       summary: 'A hobbit goes on an adventure',
       themes: ['Adventure', 'Friendship'],
       wordCount: 10,
+      keyEvents: [],
     });
     expect(data.timestamp).toBeDefined();
 

@@ -132,21 +132,37 @@ ${bookText}`,
         parsedAnalysis.characters?.flatMap(
           (character: {
             name: string;
-            relationships?: Array<{ target: string; description: string }>;
+            relationships?: Array<{
+              target: string;
+              description: string;
+              strength: string;
+            }>;
           }) =>
             character.relationships?.map(rel => ({
               character1: character.name,
               character2: rel.target,
               relationship: rel.description,
-              strength: 'moderate' as const, // Default strength, could be enhanced with sentiment analysis
+              strength: rel.strength || ('moderate' as const),
             })) || []
         ) || [],
       keyCharacters:
-        parsedAnalysis.characters?.map((char: { name: string }) => char.name) ||
-        [],
+        parsedAnalysis.characters?.map(
+          (char: {
+            name: string;
+            importance: number;
+            description?: string;
+            moral_category?: string;
+          }) => ({
+            name: char.name,
+            importance: char.importance || 5,
+            description: char.description || '',
+            moral_category: char.moral_category || 'neutral',
+          })
+        ) || [],
       themes: parsedAnalysis.themes || [],
       summary: parsedAnalysis.plot_summary || 'No summary available',
       wordCount: bookText.split(/\s+/).length, // Approximate word count
+      keyEvents: parsedAnalysis.key_events || [],
     };
 
     // Return the structured analysis result
