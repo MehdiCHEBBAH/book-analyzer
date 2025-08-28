@@ -23,6 +23,8 @@ const d3Mock = {
       force: jest.fn(() => mockSimulation),
       on: jest.fn(() => mockSimulation),
       alphaTarget: jest.fn(() => mockSimulation),
+      alphaDecay: jest.fn(() => mockSimulation),
+      velocityDecay: jest.fn(() => mockSimulation),
       restart: jest.fn(() => mockSimulation),
       stop: jest.fn(() => mockSimulation),
     };

@@ -70,6 +70,10 @@ describe('/api/analyze', () => {
     (
       services.CacheService as jest.MockedClass<typeof services.CacheService>
     ).mockImplementation(() => mockCacheService);
+
+    // Set up default cache behavior
+    mockCacheService.get.mockResolvedValue(null); // No cached analysis by default
+    mockCacheService.generateAnalysisKey.mockReturnValue('analysis:12345');
   });
 
   afterEach(() => {

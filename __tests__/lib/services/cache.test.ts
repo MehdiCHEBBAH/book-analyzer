@@ -1,26 +1,19 @@
 import { CacheService } from '@/lib/services/cache';
 
 // Mock the Upstash Redis client
-jest.mock('@upstash/redis', () => {
-  const mockRedis = {
-    get: jest.fn(),
-    setex: jest.fn(),
-    del: jest.fn(),
-    exists: jest.fn(),
-  };
-  return {
-    Redis: jest.fn(() => mockRedis),
-  };
-});
+const mockRedis = {
+  get: jest.fn(),
+  setex: jest.fn(),
+  del: jest.fn(),
+  exists: jest.fn(),
+};
+
+jest.mock('@upstash/redis', () => ({
+  Redis: jest.fn(() => mockRedis),
+}));
 
 describe('CacheService', () => {
   let cacheService: CacheService;
-  let mockRedis: jest.Mocked<{
-    get: jest.Mock;
-    setex: jest.Mock;
-    del: jest.Mock;
-    exists: jest.Mock;
-  }>;
 
   beforeEach(() => {
     // Clear all mocks
@@ -31,10 +24,6 @@ describe('CacheService', () => {
     process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
 
     cacheService = new CacheService();
-
-    // Get the mocked Redis instance from the mock
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    mockRedis = (jest.mocked(require('@upstash/redis').Redis) as unknown as jest.MockedClass<typeof import('@upstash/redis').Redis>).mock.instances[0];
   });
 
   describe('constructor', () => {
