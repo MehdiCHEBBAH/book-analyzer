@@ -11,7 +11,11 @@ interface ChatBoxProps {
   isOpen: boolean;
   onToggle: () => void;
   bookId: string;
-  analysisResult?: any;
+  analysisResult?: {
+    title: string;
+    author: string;
+    bookId: string;
+  };
 }
 
 export default function ChatBox({

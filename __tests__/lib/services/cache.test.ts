@@ -33,8 +33,7 @@ describe('CacheService', () => {
     cacheService = new CacheService();
 
     // Get the mocked Redis instance from the mock
-    const { Redis } = require('@upstash/redis');
-    mockRedis = new Redis();
+    mockRedis = (jest.mocked(require('@upstash/redis').Redis) as any).mock.instances[0];
   });
 
   describe('constructor', () => {

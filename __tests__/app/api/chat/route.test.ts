@@ -39,8 +39,12 @@ import { POST } from '../../../../src/app/api/chat/route';
 import { NextRequest } from 'next/server';
 
 describe('/api/chat', () => {
-  let mockChatAgent: any;
-  let mockGutenbergService: any;
+  let mockChatAgent: jest.Mocked<{
+    chat: jest.Mock;
+  }>;
+  let mockGutenbergService: jest.Mocked<{
+    getBookText: jest.Mock;
+  }>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,8 +66,8 @@ describe('/api/chat', () => {
     };
 
     // Replace the constructor calls with our mock instances
-    (services.BookChatAgent as any).mockImplementation(() => mockChatAgent);
-    (services.GutenbergService as any).mockImplementation(() => mockGutenbergService);
+    (services.BookChatAgent as jest.MockedFunction<typeof services.BookChatAgent>).mockImplementation(() => mockChatAgent);
+    (services.GutenbergService as jest.MockedClass<typeof services.GutenbergService>).mockImplementation(() => mockGutenbergService);
   });
 
   afterEach(() => {
