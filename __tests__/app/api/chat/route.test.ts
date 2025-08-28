@@ -193,7 +193,7 @@ describe('/api/chat', () => {
   });
 
   it('should handle empty messages array', async () => {
-    const messages: any[] = [];
+    const messages: Array<{ role: string; content: string }> = [];
     const bookId = '1342';
     const bookText = 'Sample book text content';
     const expectedResponse = 'Hello! How can I help you today?';

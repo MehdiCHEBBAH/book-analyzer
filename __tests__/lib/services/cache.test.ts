@@ -33,7 +33,8 @@ describe('CacheService', () => {
     cacheService = new CacheService();
 
     // Get the mocked Redis instance from the mock
-    mockRedis = (jest.mocked(require('@upstash/redis').Redis) as any).mock.instances[0];
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    mockRedis = (jest.mocked(require('@upstash/redis').Redis) as unknown as jest.MockedClass<typeof import('@upstash/redis').Redis>).mock.instances[0];
   });
 
   describe('constructor', () => {
